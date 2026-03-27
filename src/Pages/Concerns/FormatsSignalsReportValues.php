@@ -6,6 +6,7 @@ namespace AIArmada\FilamentSignals\Pages\Concerns;
 
 use AIArmada\FilamentSignals\Support\SignalsUiConfig;
 use Carbon\CarbonImmutable;
+use DateTimeInterface;
 
 trait FormatsSignalsReportValues
 {
@@ -16,6 +17,10 @@ trait FormatsSignalsReportValues
 
     protected function formatAggregateTimestamp(mixed $state): ?string
     {
+        if ($state instanceof DateTimeInterface) {
+            return CarbonImmutable::instance($state)->format('M j, Y g:i A');
+        }
+
         if (! is_string($state) || $state === '') {
             return null;
         }

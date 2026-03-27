@@ -95,6 +95,7 @@ final class JourneyReport extends Page implements HasTable
                 $this->savedReportId !== '' ? $this->savedReportId : null,
             ))
             ->defaultSort('sessions', 'desc')
+            ->defaultKeySort(false)
             ->columns([
                 TextColumn::make('trackedProperty.name')
                     ->label('Property')
@@ -118,7 +119,7 @@ final class JourneyReport extends Page implements HasTable
                     ->sortable(),
                 TextColumn::make('avg_duration_seconds')
                     ->label('Avg Duration')
-                    ->formatStateUsing(fn (mixed $state): string => number_format((float) $state, 2) . 's')
+                    ->formatStateUsing(fn (mixed $state): string => number_format((float) $state, 0) . 's')
                     ->sortable(),
                 TextColumn::make('last_started_at')
                     ->label('Last Started')

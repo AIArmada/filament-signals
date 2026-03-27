@@ -56,6 +56,7 @@ final class PageViewsReport extends Page implements HasTable
         return $table
             ->query(app(PageViewReportService::class)->getTableQuery())
             ->defaultSort('views', 'desc')
+            ->defaultKeySort(false)
             ->columns([
                 TextColumn::make('trackedProperty.name')
                     ->label('Property')
@@ -126,6 +127,13 @@ final class PageViewsReport extends Page implements HasTable
 
                         return $indicators;
                     }),
+                Filter::make('exclude_bots')
+                    ->label('Exclude Bots')
+                    ->toggle()
+                    ->default(true)
+                    ->query(fn (Builder $query, array $data): Builder => ($data['isActive'] ?? false)
+                        ? $query->whereDoesntHave('session', fn (Builder $q): Builder => $q->where('is_bot', true))
+                        : $query),
             ])
             ->emptyStateHeading('No page views recorded yet')
             ->emptyStateDescription('Pageview data will appear here once the tracker starts sending events.');
