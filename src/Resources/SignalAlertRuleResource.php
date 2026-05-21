@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AIArmada\FilamentSignals\Resources;
 
 use AIArmada\FilamentSignals\Resources\SignalAlertRuleResource\Pages;
+use AIArmada\FilamentSignals\Support\SignalFormOptionLists;
 use AIArmada\Signals\Models\SignalAlertRule;
 use AIArmada\Signals\Models\TrackedProperty;
 use BackedEnum;
@@ -43,6 +44,16 @@ final class SignalAlertRuleResource extends Resource
         return SignalAlertRule::query()->forOwner()->with('trackedProperty');
     }
 
+    public static function getNavigationGroup(): string | UnitEnum | null
+    {
+        return config('filament-signals.navigation_group', 'Insights');
+    }
+
+    public static function getNavigationSort(): ?int
+    {
+        return (int) config('filament-signals.resources.navigation_sort.alert_rules', 33);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->schema([
@@ -77,9 +88,13 @@ final class SignalAlertRuleResource extends Resource
                         ->options(function (): array {
                             $options = [
                                 'events' => 'Events',
+                                'event_count' => 'Event Count',
                                 'page_views' => 'Page Views',
                                 'conversions' => 'Conversions',
                                 'conversion_rate' => 'Conversion Rate (%)',
+                                'property_sum:cart_total_minor' => 'Cart Total Sum',
+                                'property_avg:cart_total_minor' => 'Average Cart Total',
+                                'property_max:cart_total_minor' => 'Max Cart Total',
                             ];
                             if (config('signals.features.monetary.enabled', true)) {
                                 $options['revenue_minor'] = 'Revenue (Minor)';
@@ -137,6 +152,69 @@ final class SignalAlertRuleResource extends Resource
                         ->columnSpanFull(),
                 ])
                 ->columns(2),
+
+            Section::make('Event filters')
+                ->description('Filter by event name, category, and optional event properties. These filters are generic and work for any package that records Signals events.')
+                ->schema([
+                    Forms\Components\TagsInput::make('event_filters.event_names')
+                        ->label('Event names')
+                        ->suggestions(SignalFormOptionLists::eventNames())
+                        ->placeholder('cart.abandoned'),
+
+                    Forms\Components\TagsInput::make('event_filters.event_categories')
+                        ->label('Event categories')
+                        ->suggestions(SignalFormOptionLists::eventCategories())
+                        ->placeholder('cart'),
+
+                    Forms\Components\Repeater::make('event_filters.properties')
+                        ->label('Property conditions')
+                        ->schema([
+                            Forms\Components\TextInput::make('key')
+                                ->required()
+                                ->placeholder('cart_total_minor'),
+                            Forms\Components\Select::make('operator')
+                                ->options([
+                                    'eq' => 'Equals',
+                                    'not_eq' => 'Not equals',
+                                    '>' => 'Greater Than',
+                                    '>=' => 'Greater Than or Equal',
+                                    '<' => 'Less Than',
+                                    '<=' => 'Less Than or Equal',
+                                    'contains' => 'Contains',
+                                ])
+                                ->default('eq')
+                                ->required(),
+                            Forms\Components\TextInput::make('value')
+                                ->required(),
+                        ])
+                        ->columns(3)
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
+
+            Section::make('Notification channels')
+                ->description('Database logs are always created. Additional channels use named destinations from signals config by default.')
+                ->schema([
+                    Forms\Components\CheckboxList::make('channels')
+                        ->options([
+                            'database' => 'Database',
+                            'email' => 'Email',
+                            'webhook' => 'Webhook',
+                            'slack' => 'Slack',
+                        ])
+                        ->columns(4)
+                        ->default(['database']),
+
+                    Forms\Components\TagsInput::make('destination_keys')
+                        ->label('Destination keys')
+                        ->placeholder('ops'),
+
+                    Forms\Components\KeyValue::make('inline_destinations')
+                        ->label('Inline destinations')
+                        ->helperText('Only used when signals.features.alerts.allow_inline_destinations is enabled.')
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
         ]);
     }
 
@@ -152,6 +230,15 @@ final class SignalAlertRuleResource extends Resource
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('metric_key')
                     ->badge(),
+                Tables\Columns\TextColumn::make('event_filters.event_names')
+                    ->label('Events')
+                    ->badge()
+                    ->separator(',')
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('channels')
+                    ->badge()
+                    ->separator(',')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('threshold')
                     ->numeric(decimalPlaces: 2)
                     ->sortable(),
