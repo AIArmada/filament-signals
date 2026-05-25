@@ -63,7 +63,7 @@ final class ConversionFunnelReport extends Page
         return config('filament-signals.navigation_group', 'Insights');
     }
 
-    public static function getNavigationSort(): ?int
+    public static function getNavigationSort(): int
     {
         return (int) config('filament-signals.resources.navigation_sort.conversion_funnel', 16);
     }
