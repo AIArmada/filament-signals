@@ -7,6 +7,7 @@ namespace AIArmada\FilamentSignals\Pages\Concerns;
 use AIArmada\FilamentSignals\Support\SignalsUiConfig;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
+use Filament\Support\Facades\FilamentTimezone;
 
 trait FormatsSignalsReportValues
 {
@@ -18,14 +19,18 @@ trait FormatsSignalsReportValues
     protected function formatAggregateTimestamp(mixed $state): ?string
     {
         if ($state instanceof DateTimeInterface) {
-            return CarbonImmutable::instance($state)->format('M j, Y g:i A');
+            return CarbonImmutable::instance($state)
+                ->timezone(FilamentTimezone::get())
+                ->format('M j, Y g:i A');
         }
 
         if (! is_string($state) || $state === '') {
             return null;
         }
 
-        return CarbonImmutable::parse($state)->format('M j, Y g:i A');
+        return CarbonImmutable::parse($state, 'UTC')
+            ->timezone(FilamentTimezone::get())
+            ->format('M j, Y g:i A');
     }
 
     public function outcomesLabel(): string
